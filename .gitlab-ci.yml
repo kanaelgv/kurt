@@ -1,0 +1,57 @@
+stages:
+  - build
+  - deploy
+  - remove
+image: docker
+
+build-front:
+  stage: build
+  script:
+    - echo "Start build job"
+    - docker build -t   myregistry:5000/kurt-front ./frontend
+    - docker push   myregistry:5000/kurt-front
+
+build-back:
+  stage: build
+  script:
+    - echo "Start build job"
+    - docker build -t   myregistry:5000/kurt-back ./backend
+    - docker push   myregistry:5000/kurt-back
+
+deploy-back:
+  stage: deploy
+  image: myregistry:5000/myhelm
+  script:
+    - export KUBECONFIG=$k8s_config
+    - echo $k8s_config
+    - helm list 
+    - helm upgrade --install kurt-back ./helm-back
+  allow_failure: true
+
+deploy-front:
+  stage: deploy
+  image: myregistry:5000/myhelm
+  script:
+    - export KUBECONFIG=$k8s_config
+    - echo $k8s_config
+    - helm list 
+    - helm upgrade --install kurt-front ./helm-front
+  allow_failure: true
+
+remove-back:
+  stage: remove
+  image: myregistry:5000/myhelm
+  script:
+    - export KUBECONFIG=$k8s_config
+    - helm uninstall  kurt-back 
+  allow_failure: true
+  when: manual
+
+remove-front:
+  stage: remove
+  image: myregistry:5000/myhelm
+  script:
+    - export KUBECONFIG=$k8s_config
+    - helm uninstall  kurt-front
+  allow_failure: true
+  when: manual

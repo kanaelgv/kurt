@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment        
+metadata:
+  name: {{ .Values.app.name }}
+  labels:               
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.app.replicas }}  
+  selector:
+    matchLabels:        
+      {{- include "app.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate 
+  template:             
+    metadata:
+      name: {{ .Values.app.name }}-pod
+      labels:
+        {{- include "app.selectorLabels" . | nindent 8 }}
+      annotations:  
+        rollme: {{ randAlphaNum 5 | quote }}
+        branch: "{{ .Values.app.branch }}"  
+    spec:
+      containers:                   
+      - name: {{ .Values.app.name }}
+        image: "{{ .Values.image.app }}:{{ .Values.image.tag }}"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{ .Values.service.internalPort }}
+          protocol: TCP
+        resources:
+          limits:                   
+            cpu: {{ .Values.limits.cpu }}
+            memory: {{ .Values.limits.memory }}
+          requests:                 
+            cpu: {{ .Values.requests.cpu }}
+            memory: {{ .Values.requests.memory }}
+        livenessProbe:              
+          tcpSocket:
+            port: {{ .Values.service.internalPort }}
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 5
+        readinessProbe:             
+          tcpSocket:
+            port: {{ .Values.service.internalPort }}
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 5
+        securityContext:            
+          allowPrivilegeEscalation: true  
+          capabilities:             
+            drop:
+            - ALL
+          privileged: true          
+          readOnlyRootFilesystem: false  
+          runAsNonRoot: false  

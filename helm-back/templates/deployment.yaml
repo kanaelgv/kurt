@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment        
+metadata:
+  name: {{ .Values.app.name }}
+  labels:               
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.app.replicas }}  
+  selector:
+    matchLabels:        
+      {{- include "app.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate 
+  template:             
+    metadata:
+      name: {{ .Values.app.name }}-pod
+      labels:
+        {{- include "app.selectorLabels" . | nindent 8 }}
+      annotations:  
+        rollme: {{ randAlphaNum 5 | quote }}
+        branch: "{{ .Values.app.branch }}"  
+    spec:
+      containers:                   
+      - env:
+        {{- include "kurt-back.EnvStartup" . | indent 8 }}    
+        image: "{{ .Values.image.app }}:{{ .Values.image.tag }}"
+        imagePullPolicy: Always
+        name: {{ .Values.app.name }}
+        ports:
+        - containerPort: {{ .Values.service.internalPort }}
+          protocol: TCP
+        resources:
+          limits:                   
+            cpu: {{ .Values.limits.cpu }}
+            memory: {{ .Values.limits.memory }}
+          requests:                 
+            cpu: {{ .Values.requests.cpu }}
+            memory: {{ .Values.requests.memory }}
+        securityContext:            
+          allowPrivilegeEscalation: true  
+          # capabilities:             
+          #   drop:
+          #   - ALL
+          privileged: true          
+          readOnlyRootFilesystem: false  
+          runAsNonRoot: false       
